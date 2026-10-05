@@ -1,14 +1,26 @@
 {
   "name": "apparelflow",
+  "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate --config prisma7.config.ts && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "db:validate": "prisma validate --config prisma7.config.ts",
+    "db:generate": "prisma generate --config prisma7.config.ts",
+    "db:deploy": "prisma migrate deploy --config prisma7.config.ts",
+    "db:deploy:direct-tls": "node scripts/prisma-direct-tls.mjs migrate deploy",
+    "db:status:direct-tls": "node scripts/prisma-direct-tls.mjs migrate status",
+    "db:seed": "prisma db seed --config prisma7.config.ts",
+    "db:verify": "tsx prisma/verify.ts"
   },
   "dependencies": {
+    "@prisma/adapter-neon": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "^18.0.5",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -20,7 +32,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "prisma": "7.10.0",
     "tailwindcss": "^4",
+    "tsx": "4.23.15",
     "typescript": "^5"
   }
 }

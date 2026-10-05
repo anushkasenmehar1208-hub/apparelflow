@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUTTING_SUPERVISOR
+  CUTTING_VERIFIER
+  SEWING_SUPERVISOR
+}
+
+enum OrderStatus {
+  CUTTING_IN_PROGRESS
+  PENDING_VERIFICATION
+  REJECTED
+  VERIFIED
+  SEWING_STARTED
+}
+
+enum VerificationStatus {
+  GREEN
+  YELLOW
+  RED
+}
+
+enum VerificationDecision {
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  email            String            @unique
+  passwordHash     String
+  role             UserRole
+  fullName         String
+  createdAt        DateTime          @default(now())
+  createdOrders    CuttingOrder[]    @relation("CreatedOrders")
+  verificationLogs VerificationLog[] @relation("VerifierLogs")
+}
+
+model Recipe {
+  id             Int               @id @default(autoincrement())
+  recipeCode     String            @unique
+  name           String
+  category       String
+  stdFabricYards Decimal           @db.Decimal(10, 2)
+  wastageCap     Decimal           @db.Decimal(5, 2)
+  components     RecipeComponent[]
+  orders         CuttingOrder[]
+}
+
+model RecipeComponent {
+  id                Int                @id @default(autoincrement())
+  recipeId          Int
+  componentName     String
+  piecesPerGarment  Int
+  imageUrl          String?
+  recipe            Recipe             @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  verificationItems VerificationItem[]
+}
+
+model CuttingOrder {
+  id                Int                @id @default(autoincrement())
+  orderNo           String             @unique
+  recipeId          Int
+  targetQty         Int
+  fabricRollId      String
+  actualFabricYds   Decimal            @db.Decimal(10, 2)
+  status            OrderStatus        @default(CUTTING_IN_PROGRESS)
+  createdBy         Int
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  recipe            Recipe             @relation(fields: [recipeId], references: [id])
+  creator           User               @relation("CreatedOrders", fields: [createdBy], references: [id])
+  verificationItems VerificationItem[]
+  verificationLogs  VerificationLog[]
+}
+
+model VerificationItem {
+  id          Int                 @id @default(autoincrement())
+  orderId     Int
+  componentId Int
+  expectedQty Int
+  actualQty   Int?
+  status      VerificationStatus?
+  order       CuttingOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  component   RecipeComponent     @relation(fields: [componentId], references: [id])
+
+  @@unique([orderId, componentId])
+}
+
+model VerificationLog {
+  id            Int                  @id @default(autoincrement())
+  orderId       Int
+  verifierId    Int
+  decision      VerificationDecision
+  rejectionNote String?
+  wastagePct    Decimal              @db.Decimal(6, 2)
+  timestamp     DateTime             @default(now())
+  order         CuttingOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  verifier      User                 @relation("VerifierLogs", fields: [verifierId], references: [id])
+}
