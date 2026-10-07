@@ -1,0 +1,28 @@
+{
+  "before": {
+    "users": 3,
+    "orders": 0,
+    "items": 0
+  },
+  "after": {
+    "users": 3,
+    "orders": 2,
+    "items": 10
+  },
+  "invalidChecks": 22,
+  "created": [
+    {
+      "id": 1,
+      "orderNo": "CUT-332edb6d-8469-4acf-b691-5f1c02badcc8",
+      "recipeCode": "REC-BL01",
+      "items": 5
+    },
+    {
+      "id": 2,
+      "orderNo": "CUT-fbf62742-2220-4eef-83f4-e377295f6cfc",
+      "recipeCode": "REC-CT02",
+      "items": 5
+    }
+  ],
+  "fabricRollId": "DAY2-TEST-b77ba620-f2f2-48c2-be89-a2685db3210f"
+}
