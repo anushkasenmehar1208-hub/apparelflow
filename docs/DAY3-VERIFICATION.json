@@ -1,0 +1,41 @@
+{
+  "before": {
+    "orders": 7,
+    "items": 35,
+    "logs": 3
+  },
+  "after": {
+    "orders": 10,
+    "items": 50,
+    "logs": 6
+  },
+  "verifierId": 1,
+  "testOrders": [
+    {
+      "id": 8,
+      "orderNo": "CUT-59533b25-e182-4d2a-9846-b6cbb79d9081",
+      "finalStatus": "VERIFIED"
+    },
+    {
+      "id": 9,
+      "orderNo": "CUT-ca3dcac4-a321-4df2-b621-294795f6f377",
+      "finalStatus": "REJECTED"
+    },
+    {
+      "id": 10,
+      "orderNo": "CUT-7d5a2eb1-51d4-4976-96b7-d274e5965eb1",
+      "finalStatus": "REJECTED"
+    }
+  ],
+  "checks": {
+    "missingSession401": true,
+    "nonVerifier403": true,
+    "invalidCounts400": true,
+    "uncountedApproval422": true,
+    "redApproval422": true,
+    "yellowApproval": true,
+    "duplicateDecision409": true,
+    "rejectionNoteRequired": true,
+    "databaseAuditVerified": true
+  }
+}
