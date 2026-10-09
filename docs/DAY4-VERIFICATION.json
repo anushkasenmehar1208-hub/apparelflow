@@ -1,0 +1,52 @@
+{
+  "before": {
+    "orders": 10,
+    "items": 50,
+    "logs": 6
+  },
+  "after": {
+    "orders": 14,
+    "items": 65,
+    "logs": 8
+  },
+  "verifierId": 1,
+  "testOrders": {
+    "greenStarted": {
+      "id": 11,
+      "orderNo": "CUT-583e92b6-bf41-4cc7-9c73-4257d2bf3186",
+      "finalStatus": "SEWING_STARTED"
+    },
+    "redPending": {
+      "id": 12,
+      "orderNo": "CUT-171be8a7-7b71-4fa5-b958-1fad404843a0",
+      "finalStatus": "PENDING_VERIFICATION"
+    },
+    "rejected": {
+      "id": 13,
+      "orderNo": "CUT-360cb74d-aa03-40a2-bb5f-b2a0d1711913",
+      "finalStatus": "REJECTED"
+    },
+    "cuttingInProgress": {
+      "id": 14,
+      "orderNo": "DAY4-CUTTING-ee3134a3-de18-4e7e-b650-25b8d65e74f6",
+      "finalStatus": "CUTTING_IN_PROGRESS"
+    }
+  },
+  "mandatoryTests": {
+    "allGreenApproval": true,
+    "redBlocksApproval": true,
+    "rejectionRequiresNote": true,
+    "nonVerifierApproval403": true,
+    "unapprovedExcludedFromSewingQueue": true
+  },
+  "sewingTests": {
+    "verifiedAppears": true,
+    "pendingRejectedAndCuttingExcluded": true,
+    "missingSession401": true,
+    "wrongRole403": true,
+    "onlyVerifiedTransition": true,
+    "duplicateStart409": true,
+    "persistenceVerified": true,
+    "auditAndCountsUnchanged": true
+  }
+}

@@ -1,10 +1,57 @@
-# ApparelFlow ERP — Days 1 and 2
+# ApparelFlow ERP
 
-Next.js 16, TypeScript, Tailwind CSS, Prisma 7.10.0, and the existing Neon PostgreSQL database. Day 1 includes a relational schema, two garment recipes with ten components, and a basic landing page. Day 2 adds demo roles and cutting order creation; later production workflows are not implemented.
+ApparelFlow is a four-day software engineering internship project for a small garment-production workflow. It uses one Next.js application for the browser UI and server Route Handlers, with Prisma connecting the server to an existing Neon PostgreSQL database.
+
+## Stack
+
+- Next.js 16 and React 19
+- TypeScript
+- Tailwind CSS 4
+- Prisma 7.10 with the official Neon adapter
+- Neon PostgreSQL
+- Vercel/Render-compatible Next.js deployment
+
+## Architecture and workflow
+
+The application keeps authorization, validation, state transitions, and database writes in server Route Handlers. The browser displays role-specific workspaces and sends user input, but it does not decide protected roles or order statuses.
+
+1. A Cutting Supervisor creates an order from a database recipe. The server creates its expected component rows and assigns `PENDING_VERIFICATION`.
+2. A Cutting Verifier records actual component counts. The server derives GREEN, YELLOW, or RED status for each count.
+3. The verifier may approve only when every component is counted and none is RED. Approval sets `VERIFIED`; rejection requires a note and sets `REJECTED`. Both decisions create an immutable verification log.
+4. A Sewing Supervisor sees a database-isolated queue of `VERIFIED` orders. Starting assembly performs the only allowed sewing transition: `VERIFIED → SEWING_STARTED`.
+
+Protected changes use transactions and conditional status updates so stale or repeated requests cannot silently repeat a transition.
+
+## Database
+
+The existing Prisma schema contains six related models:
+
+- `User`
+- `Recipe`
+- `RecipeComponent`
+- `CuttingOrder`
+- `VerificationItem`
+- `VerificationLog`
+
+The seed ensures two recipes and ten components: Casual Blouse (`REC-BL01`) and Crop Top (`REC-CT02`). It is transactional, repeatable, preserves existing IDs, and deletes nothing.
+
+Order statuses are `CUTTING_IN_PROGRESS`, `PENDING_VERIFICATION`, `REJECTED`, `VERIFIED`, and `SEWING_STARTED`.
+
+## Demo roles
+
+The homepage contains a demo role switcher for:
+
+- **Cutting Supervisor** — creates cutting orders.
+- **Cutting Verifier** — counts components and approves or rejects pending orders.
+- **Sewing Supervisor** — sees verified orders and starts sewing assembly.
+
+There are no typed passwords in this internship demo. Selecting a role creates or loads its disabled-login demo database user and issues an opaque HttpOnly, SameSite=Strict session cookie. The server reloads that user's database role for protected requests.
+
+This mechanism is intentionally limited. Anyone who can access the demo can select any demo role. Sessions live in one server process for eight hours, disappear after restart, and are not shared across multiple instances. A production system should use real authentication and a shared session store.
 
 ## Local setup
 
-Use Node.js 22.22.2 (the tested version) or a compatible supported release.
+Use Node.js 22.22.2, or another release supported by the installed Next.js version.
 
 ```sh
 npm ci
@@ -12,20 +59,32 @@ npm run db:generate
 npm run dev
 ```
 
-Keep your existing `DATABASE_URL` in `.env.local`. Do not print it, commit it, or prefix it with `NEXT_PUBLIC_`. CLI scripts load `.env.local` explicitly; hosting environment variables take precedence.
+Open the local URL printed by Next.js and select a demo role.
 
-## Database
+### Environment variables
 
-The Prisma schema is unchanged. Its physical PostgreSQL tables use the existing Prisma model names: `User`, `Recipe`, `RecipeComponent`, `CuttingOrder`, `VerificationItem`, and `VerificationLog`.
+Create `.env.local` with the existing Neon connection string:
+
+```text
+DATABASE_URL=your-existing-neon-postgresql-connection-string
+```
+
+Never prefix this variable with `NEXT_PUBLIC_`. It is server-only. `.env.local` and all `.env*` files are ignored and must not be committed, printed, or uploaded.
+
+## Commands
 
 ```sh
+npm test
+npm run lint
+npm run typecheck
+npm run build
 npm run db:validate
-npm run db:deploy
-npm run db:seed
 npm run db:verify
 ```
 
-On the tested network, ordinary PostgreSQL SSL negotiation hangs. The existing database works using verified direct TLS. Use the local helper when applying/checking migrations from this network:
+The production build generates Prisma Client. It does not migrate, seed, or query the database.
+
+On restricted local networks, ordinary PostgreSQL SSL negotiation may hang. The existing certificate-verified direct-TLS helper is available only for migration deployment, status, and the documented drift check:
 
 ```sh
 npm run db:deploy:direct-tls
@@ -33,52 +92,50 @@ npm run db:status:direct-tls
 node scripts/prisma-direct-tls.mjs migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
 ```
 
-The helper opens an ephemeral listener on `127.0.0.1`, forwards to the same Neon endpoint using certificate-verified TLS, and closes afterward. The loopback hop is plaintext; the outbound database connection is encrypted. Do not expose this listener publicly. It allows only deployment, status, and the documented read-only drift check. No shadow database is created. Prisma Client scripts use the official Neon adapter over secure WebSockets instead.
+Do not expose the helper's ephemeral loopback listener publicly.
 
-The seed is transactional and repeatable. It updates the two recipe definitions, preserves existing component IDs/image URLs, creates missing required components, and deletes nothing. Existing duplicate component names cause a failure instead of silent repair. Wastage caps use percentage points (`5.00` means 5%). No component images were supplied, so new image URLs are null.
+### Integration verification
 
-## Day 2 demo roles and cutting orders
-
-The existing page now loads recipes/components from `GET /api/recipes`. Select a demo role; only the Cutting Supervisor sees the creation form. Target quantity updates each component's expected pieces immediately. Submitting saves an order with `PENDING_VERIFICATION` and its component verification items in one transaction.
-
-`POST /api/demo-session` selects one of the three demo identities and creates its database `User` on first use. No password login is provided; the required password-hash field contains a disabled-login marker. An opaque random token is stored in an HttpOnly, SameSite=Strict cookie, Secure on HTTPS. The server stores its user ID and expiry and resolves the user's database role for every order request. `POST /api/cutting-orders` ignores client role, creator, status, and expected quantities and computes those itself. Both POST endpoints require same-origin JSON requests.
-
-**This is an open internship demo, not real authentication. Anyone can deliberately select the supervisor demo role.** The order endpoint still denies sessions for the other two roles, absent sessions, and forged tokens. Session storage is in memory, lasts eight hours, and is suitable for the current single-instance demo: restarting the app invalidates sessions, and multiple instances would need shared session storage or real authentication. Do not treat this as private factory access control.
-
-Validation is shared by frontend/server: required fields; positive whole-number batch quantities within PostgreSQL Int limits; positive fabric with no more than two decimals within Decimal(10,2); roll IDs up to 100 characters; existing recipe with valid components; no component-count overflow. Numeric JSON inputs and form strings are supported. Fabric decimals are passed as strings to Prisma to preserve precision.
+Run these only against the intended test/demo database. They create clearly labeled permanent test rows and delete nothing.
 
 ```sh
-node --import tsx --test lib/order-validation.test.ts
-# Run after a production build. Writes two permanent labeled test orders to the configured database:
-node_modules/.bin/tsx scripts/check-day2.ts
+npm run check:day3
+npm run check:day4
 ```
 
-The integration script checks recipe loading, authorization, forged request fields/cookies, cross-origin rejection, invalid inputs, and actual persisted order/component values. It leaves its test rows in place and records IDs in `docs/DAY2-VERIFICATION.json`. Do not blindly retry a submission after a network failure: the save may have succeeded even if the response was lost. Day 2 does not add a general idempotency/retry workflow.
+`scripts/check-day2.ts` is the earlier Day 2 integration check. Day 3 and Day 4 checks cover the current complete workflow, authorization failures, validation, database persistence, audit logs, queue isolation, and illegal state transitions.
 
-No Day 3 approval/rejection/verification logic or Day 4 sewing workflow is implemented. No schema migration is required for Day 2.
+## API and security behavior
 
-## Checks
+- `POST /api/demo-session` selects one of the three allowed demo identities.
+- `GET /api/recipes` returns database recipes and components.
+- `POST /api/cutting-orders` requires `CUTTING_SUPERVISOR` and derives creator, status, and expected quantities on the server.
+- `GET /api/verification-orders` returns only `PENDING_VERIFICATION` orders to `CUTTING_VERIFIER`.
+- `PATCH /api/verification-items/:id` persists a verifier count and server-derived traffic status.
+- `POST /api/verification-orders/:id/decision` atomically finalizes verification and creates its audit log.
+- `GET /api/sewing-orders` requires `SEWING_SUPERVISOR` and queries the database with `status = VERIFIED`.
+- `POST /api/sewing-orders/:id/start` accepts only the `VERIFIED → SEWING_STARTED` transition.
+- Mutation endpoints require same-origin JSON requests.
+- Missing sessions receive `401`; authenticated wrong roles receive `403`; illegal transitions receive `409`; approval hard stops receive `422`.
 
-```sh
-npm run lint
-npm run typecheck
-npm run build
-npm start
-```
+The server never trusts client-provided role, creator, protected status, expected count, verification status, verifier identity, or wastage percentage.
 
-`build` generates the ignored Prisma Client before compiling Next.js. It does not query Neon, run migrations, or seed the database. No secret is required just to build the static landing page.
+## Deployment
 
-## Cloud deployment (Render)
+GitHub currently records [apparelflow-five.vercel.app](https://apparelflow-five.vercel.app/) as the public homepage. It returned HTTP 200 on 9 October 2026, but still served the Day 1 skeleton at that check. It is not the final Day 4 deployment until the reviewed local changes are committed, pushed, redeployed, and tested.
 
-The deployment target is now Render. Use one free Node web service connected to this GitHub repository's main branch, with the existing Neon database:
+The project can run on Vercel or a Render Node web service connected to this repository and the existing Neon database. Render settings previously used for this project are:
 
-- Build command: `npm ci --include=dev && npm run build`.
-- Start command: `npm start -- --hostname 0.0.0.0 --port $PORT`.
-- Node version: `22.22.2` (set `NODE_VERSION` in Render).
-- Secret environment variable: `DATABASE_URL` (set privately in Render; use the existing Neon connection).
+- Build: `npm ci --include=dev && npm run build`
+- Start: `npm start -- --hostname 0.0.0.0 --port $PORT`
+- Environment: private `DATABASE_URL` and the configured Node version
 
-The build generates Prisma Client but never migrates or seeds the database. The homepage includes the Day 2 demo role switcher and cutting order form. `GET /api/health` performs only `SELECT 1` through the existing Neon adapter and returns success/failure without credentials or application data. It checks the environment at request time, returns HTTP 503 if unavailable, and is not cached.
+Vercel detects Next.js and uses the repository build script. On either host, configure `DATABASE_URL` privately. The build does not run migrations or seeds, and `.env.local` is never uploaded.
 
-Render's environment settings replace local environment files in the deployed service; do not upload or commit `.env.local`. Changes to host variables apply on the next deployment. GitHub pushes to main trigger deployments after the service is linked.
+## Reports
 
-See the reports under `docs/` for tested outcomes. Earlier Vercel reports describe the unsuccessful attempts before the switch to Render.
+- `AI_OPTIMIZATION_REPORT.md`
+- `docs/DAY2-REPORT.md`
+- `docs/DAY3-VERIFICATION.json`
+- `docs/DAY4-REPORT.md`
+- `docs/DAY4-VERIFICATION.json`

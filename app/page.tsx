@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { FieldErrors, MAX_INT, validateOrder } from "@/lib/order-validation";
+import { SewingWorkspace } from "@/app/sewing-workspace";
+import { VerifierWorkspace } from "@/app/verifier-workspace";
 
 type Role = "CUTTING_SUPERVISOR" | "CUTTING_VERIFIER" | "SEWING_SUPERVISOR";
 type Recipe = { id: number; recipeCode: string; name: string; components: { id: number; componentName: string; piecesPerGarment: number }[] };
@@ -96,7 +98,7 @@ export default function Home() {
           </h1>
 
           <p className="mt-3 text-zinc-600">
-            Day 2: role switching and cutting order creation.
+            Cutting, verification, and sewing workflow.
           </p>
         </header>
 
@@ -117,7 +119,7 @@ export default function Home() {
                 onClick={() => void switchRole(role.value)}
                 disabled={pending || loading}
                 aria-pressed={currentRole === role.value}
-                className={`rounded-xl border px-4 py-3 text-left font-medium transition ${
+                className={`rounded-xl border px-4 py-3 text-left font-medium transition focus:outline-none focus:ring-2 focus:ring-teal-700 focus:ring-offset-2 disabled:cursor-not-allowed ${
                   currentRole === role.value
                     ? "border-teal-700 bg-teal-50 text-teal-900"
                     : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50"
@@ -167,7 +169,7 @@ export default function Home() {
                   onChange={(event) =>
                     setRecipeId(event.target.value)
                   }
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-700"
                 >
                   <option value="">Select a recipe</option>
                   {recipes.map((recipe) => (
@@ -203,7 +205,7 @@ export default function Home() {
                     setTargetQty(event.target.value)
                   }
                   placeholder="Example: 50"
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-700"
                 />
                 {fieldError("targetQty")}
               </div>
@@ -227,7 +229,7 @@ export default function Home() {
                     setFabricRollId(event.target.value)
                   }
                   placeholder="Example: FAB-ROLL-882"
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-700"
                 />
                 {fieldError("fabricRollId")}
               </div>
@@ -255,7 +257,7 @@ export default function Home() {
                     )
                   }
                   placeholder="Example: 92.5"
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-700"
                 />
                 {fieldError("actualFabricYards")}
               </div>
@@ -316,24 +318,24 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={pending || loading || recipes.length === 0}
-                className="rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white transition hover:bg-teal-800"
+                className="rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-zinc-600 disabled:text-white"
               >
                 {pending ? "Saving…" : "Create Cutting Order"}
               </button>
             </form>
           </section>
+        ) : currentRole === "CUTTING_VERIFIER" ? (
+          <VerifierWorkspace />
+        ) : currentRole === "SEWING_SUPERVISOR" ? (
+          <SewingWorkspace />
         ) : (
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold">
-              {!currentRole ? "Select a demo role" : currentRole ===
-              "CUTTING_VERIFIER"
-                ? "Cutting Verifier"
-                : "Sewing Supervisor"}
+              Select a demo role
             </h2>
 
             <p className="mt-2 text-zinc-600">
-              {currentRole ? "This role cannot create cutting orders." : "Select a demo role above to begin."}
-              Its workspace will be built later.
+              Select a demo role above to begin.
             </p>
           </section>
         )}

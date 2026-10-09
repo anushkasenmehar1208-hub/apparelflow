@@ -1,28 +1,28 @@
 {
   "before": {
     "users": 3,
-    "orders": 0,
-    "items": 0
+    "orders": 5,
+    "items": 25
   },
   "after": {
     "users": 3,
-    "orders": 2,
-    "items": 10
+    "orders": 7,
+    "items": 35
   },
   "invalidChecks": 22,
   "created": [
     {
-      "id": 1,
-      "orderNo": "CUT-332edb6d-8469-4acf-b691-5f1c02badcc8",
+      "id": 6,
+      "orderNo": "CUT-e0a09ba3-690e-4bb3-8d85-d59867ba86a4",
       "recipeCode": "REC-BL01",
       "items": 5
     },
     {
-      "id": 2,
-      "orderNo": "CUT-fbf62742-2220-4eef-83f4-e377295f6cfc",
+      "id": 7,
+      "orderNo": "CUT-be4db26a-b2ef-41b2-aaf4-55de8fd3f8fc",
       "recipeCode": "REC-CT02",
       "items": 5
     }
   ],
-  "fabricRollId": "DAY2-TEST-b77ba620-f2f2-48c2-be89-a2685db3210f"
+  "fabricRollId": "DAY2-TEST-25897bc0-f094-4227-a254-3fc96b1d8b77"
 }
